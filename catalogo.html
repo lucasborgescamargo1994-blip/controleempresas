@@ -3,99 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo com Disponibilidade</title>
+    <title>Catálogo Digital - Folia & Gestão</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .grid-fantasias { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .calendario-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-        .dia { font-size: 9px; padding: 4px 0; text-align: center; border-radius: 4px; }
+        /* Estilos para o Grid e Calendário */
+        .grid-fantasias { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); 
+            gap: 20px; 
+            padding: 10px 0;
+        }
+        .calendario-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 2px; 
+        }
+        .dia { 
+            font-size: 9px; 
+            padding: 4px 0; 
+            text-align: center; 
+            border-radius: 4px; 
+        }
         .dia-ocupado { background-color: #fee2e2; color: #ef4444; font-weight: bold; text-decoration: line-through; }
         .dia-livre { background-color: #f0fdf4; color: #22c55e; }
+
+        /* Estilo das Categorias Expansíveis */
+        .categoria-btn {
+            width: 100%;
+            text-align: left;
+            padding: 18px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            font-weight: 900;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .categoria-btn:active { scale: 0.98; }
+        
+        .categoria-conteudo {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .categoria-container.aberto .categoria-conteudo {
+            max-height: 10000px; /* Permite crescer conforme o número de itens */
+            margin-bottom: 20px;
+        }
+        .seta { transition: transform 0.3s; color: #94a3b8; }
+        .categoria-container.aberto .seta { transform: rotate(180deg); color: #f97316; }
+        .categoria-container.aberto .categoria-btn { border-color: #f97316; ring: 2px; ring-color: #f97316; }
     </style>
 </head>
-<body class="bg-slate-50 font-sans">
+<body class="bg-slate-50 font-sans text-slate-900">
 
-    <header class="bg-white border-b sticky top-0 z-50 p-4 shadow-sm text-center">
-        <h1 class="text-xl font-black text-orange-600 uppercase italic">Folia & Gestão</h1>
-        <p class="text-[10px] text-gray-400 font-bold uppercase">Disponibilidade em Tempo Real</p>
+    <header class="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 p-4 shadow-sm text-center">
+        <h1 class="text-xl font-black text-orange-600 uppercase italic tracking-tighter">Folia & Gestão</h1>
+        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Catálogo de Disponibilidade</p>
     </header>
 
-    <main class="max-w-6xl mx-auto p-4">
-        <section id="areaUpload" class="mb-8 p-10 border-2 border-dashed border-orange-200 rounded-[32px] bg-white text-center shadow-sm">
+    <main class="max-w-5xl mx-auto p-4">
+        
+        <section id="areaUpload" class="my-10 p-12 border-4 border-dashed border-orange-100 rounded-[40px] bg-white text-center shadow-xl">
+            <div class="text-5xl mb-6">✨</div>
+            <h2 class="text-lg font-black text-slate-800 mb-2 uppercase">Bem-vindo(a)!</h2>
+            <p class="text-sm text-slate-500 mb-8 px-4">Para visualizar as fantasias e datas disponíveis, selecione o arquivo que você recebeu da loja.</p>
+            
             <input type="file" id="inputJson" class="hidden" accept=".json">
-            <label for="inputJson" class="cursor-pointer bg-orange-500 text-white px-10 py-4 rounded-full font-black text-sm shadow-lg hover:bg-orange-600 transition-all inline-block">
-                CARREGAR CATÁLOGO ATUALIZADO
+            <label for="inputJson" class="cursor-pointer bg-orange-500 text-white px-10 py-4 rounded-full font-black text-sm shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all active:scale-95 inline-block uppercase">
+                Selecionar Arquivo
             </label>
         </section>
 
-        <div id="listaCatalogo" class="grid-fantasias hidden"></div>
+        <div id="listaCategorias" class="hidden space-y-4 pb-20">
+            </div>
+
     </main>
+
+    <div id="footerAviso" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl text-[10px] font-bold uppercase tracking-widest z-50">
+        Toque na categoria para abrir
+    </div>
 
     <script>
         const inputJson = document.getElementById('inputJson');
-        const listaCatalogo = document.getElementById('listaCatalogo');
+        const listaCategorias = document.getElementById('listaCategorias');
+        const areaUpload = document.getElementById('areaUpload');
+        const footerAviso = document.getElementById('footerAviso');
 
+        // Escuta a seleção do arquivo
         inputJson.addEventListener('change', function(e) {
+            const arquivo = e.target.files[0];
+            if (!arquivo) return;
+
             const leitor = new FileReader();
             leitor.onload = (event) => {
-                const dados = JSON.parse(event.target.result);
-                const pecas = Array.isArray(dados) ? dados : dados.fantasias;
-                renderizar(pecas);
+                try {
+                    const dados = JSON.parse(event.target.result);
+                    // Aceita backup completo ou apenas lista de peças
+                    const pecas = Array.isArray(dados) ? dados : (dados.fantasias || []);
+                    
+                    if (pecas.length > 0) {
+                        renderizarCategorias(pecas);
+                    } else {
+                        alert("O arquivo selecionado está vazio.");
+                    }
+                } catch (err) {
+                    alert("Erro ao ler o arquivo. Verifique se selecionou o arquivo .json correto.");
+                }
             };
-            leitor.readAsText(e.target.files[0]);
+            leitor.readAsText(arquivo);
         });
 
+        // Função para criar o calendário de cada card
         function gerarCalendarioHtml(alugueis) {
             const hoje = new Date();
-            const mesAtual = hoje.getMonth();
-            const anoAtual = hoje.getFullYear();
-            
-            // Vamos mostrar os próximos 28 dias a partir de hoje
             let html = '<div class="calendario-grid">';
             const diasSemana = ['D','S','T','Q','Q','S','S'];
             
-            diasSemana.forEach(d => html += `<div class="text-[8px] text-gray-400 font-bold text-center">${d}</div>`);
+            diasSemana.forEach(d => html += `<div class="text-[8px] text-slate-300 font-bold text-center mb-1">${d}</div>`);
 
             for (let i = 0; i < 28; i++) {
                 const dataFoco = new Date();
                 dataFoco.setDate(hoje.getDate() + i);
                 const dataString = dataFoco.toISOString().split('T')[0];
                 
-                // Verifica se o dia está ocupado na lista de aluguéis da peça
-                const ocupado = alugueis.some(a => dataString >= a.inicio && dataString <= a.fim);
-                
+                const ocupado = (alugueis || []).some(a => dataString >= a.inicio && dataString <= a.fim);
                 const classe = ocupado ? 'dia-ocupado' : 'dia-livre';
+                
                 html += `<div class="dia ${classe}">${dataFoco.getDate()}</div>`;
             }
             html += '</div>';
             return html;
         }
 
-        function renderizar(pecas) {
-            listaCatalogo.innerHTML = '';
+        // Função Principal de Renderização
+        function renderizarCategorias(pecas) {
+            listaCategorias.innerHTML = '';
+            
+            // 1. Agrupar por categoria
+            const grupos = {};
             pecas.forEach(p => {
-                listaCatalogo.innerHTML += `
-                    <div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 p-4">
-                        <img src="${p.foto}" class="w-full h-48 object-cover rounded-2xl mb-4 bg-slate-100">
-                        <div class="mb-4">
-                            <h3 class="font-black text-sm uppercase text-slate-800">${p.nome}</h3>
-                            <p class="text-[10px] text-slate-400 font-bold">REF: ${p.ref}</p>
-                        </div>
-                        
-                        <div class="bg-slate-50 rounded-2xl p-3 mb-4">
-                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-2 text-center">Disponibilidade (Próximos 30 dias)</p>
-                            ${gerarCalendarioHtml(p.alugueis || [])}
-                        </div>
+                const cat = p.categoria || "Geral";
+                if (!grupos[cat]) grupos[cat] = [];
+                grupos[cat].push(p);
+            });
 
-                        <a href="https://wa.me/5542999999999?text=Olá! Gostaria de alugar a peça ${p.nome} (Ref: ${p.ref})" 
-                           class="block w-full bg-green-500 text-white text-xs font-bold text-center py-3 rounded-xl hover:bg-green-600 transition-all uppercase">
-                            Reservar Agora
-                        </a>
+            // 2. Criar os Accordions
+            Object.keys(grupos).sort().forEach(nomeCat => {
+                const itens = grupos[nomeCat];
+                const container = document.createElement('div');
+                container.className = 'categoria-container';
+                
+                container.innerHTML = `
+                    <button class="categoria-btn shadow-sm" onclick="this.parentElement.classList.toggle('aberto')">
+                        <span class="flex items-center gap-2">
+                            <span class="text-orange-500">📁</span>
+                            ${nomeCat} 
+                            <span class="text-slate-400 text-[10px] bg-slate-100 px-2 py-0.5 rounded-full">${itens.length}</span>
+                        </span>
+                        <span class="seta text-xs">▼</span>
+                    </button>
+                    <div class="categoria-conteudo">
+                        <div class="grid-fantasias">
+                            ${itens.map(p => `
+                                <div class="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-200 p-4 flex flex-col">
+                                    <img src="${p.foto}" class="w-full h-56 object-cover rounded-[24px] mb-4 bg-slate-50">
+                                    <div class="px-1 flex-grow">
+                                        <h3 class="font-black text-sm uppercase text-slate-800 leading-tight">${p.nome}</h3>
+                                        <p class="text-[10px] text-orange-500 font-bold mb-4">REF: ${p.ref}</p>
+                                        
+                                        <div class="bg-slate-50 rounded-2xl p-3 mb-4">
+                                            <p class="text-[8px] font-black text-slate-400 uppercase mb-2 text-center tracking-widest">Disponibilidade (28 dias)</p>
+                                            ${gerarCalendarioHtml(p.alugueis)}
+                                        </div>
+                                    </div>
+                                    
+                                    <a href="https://wa.me/5542999999999?text=Olá! Vi no catálogo e gostaria de reservar: ${p.nome} (Ref: ${p.ref})" 
+                                       target="_blank"
+                                       class="block w-full bg-green-500 text-white text-xs font-black text-center py-4 rounded-2xl hover:bg-green-600 transition-all shadow-md shadow-green-100 uppercase">
+                                        Consultar Peça
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                 `;
+                listaCategorias.appendChild(container);
             });
-            listaCatalogo.classList.remove('hidden');
-            document.getElementById('areaUpload').classList.add('hidden');
+
+            // Alternar visibilidade das áreas
+            areaUpload.classList.add('hidden');
+            listaCategorias.classList.remove('hidden');
+            footerAviso.classList.remove('hidden');
         }
     </script>
 </body>
