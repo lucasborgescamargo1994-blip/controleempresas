@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo com Disponibilidade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .grid-fantasias { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .calendario-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+        .dia { font-size: 9px; padding: 4px 0; text-align: center; border-radius: 4px; }
+        .dia-ocupado { background-color: #fee2e2; color: #ef4444; font-weight: bold; text-decoration: line-through; }
+        .dia-livre { background-color: #f0fdf4; color: #22c55e; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans">
+
+    <header class="bg-white border-b sticky top-0 z-50 p-4 shadow-sm text-center">
+        <h1 class="text-xl font-black text-orange-600 uppercase italic">Folia & Gestão</h1>
+        <p class="text-[10px] text-gray-400 font-bold uppercase">Disponibilidade em Tempo Real</p>
+    </header>
+
+    <main class="max-w-6xl mx-auto p-4">
+        <section id="areaUpload" class="mb-8 p-10 border-2 border-dashed border-orange-200 rounded-[32px] bg-white text-center shadow-sm">
+            <input type="file" id="inputJson" class="hidden" accept=".json">
+            <label for="inputJson" class="cursor-pointer bg-orange-500 text-white px-10 py-4 rounded-full font-black text-sm shadow-lg hover:bg-orange-600 transition-all inline-block">
+                CARREGAR CATÁLOGO ATUALIZADO
+            </label>
+        </section>
+
+        <div id="listaCatalogo" class="grid-fantasias hidden"></div>
+    </main>
+
+    <script>
+        const inputJson = document.getElementById('inputJson');
+        const listaCatalogo = document.getElementById('listaCatalogo');
+
+        inputJson.addEventListener('change', function(e) {
+            const leitor = new FileReader();
+            leitor.onload = (event) => {
+                const dados = JSON.parse(event.target.result);
+                const pecas = Array.isArray(dados) ? dados : dados.fantasias;
+                renderizar(pecas);
+            };
+            leitor.readAsText(e.target.files[0]);
+        });
+
+        function gerarCalendarioHtml(alugueis) {
+            const hoje = new Date();
+            const mesAtual = hoje.getMonth();
+            const anoAtual = hoje.getFullYear();
+            
+            // Vamos mostrar os próximos 28 dias a partir de hoje
+            let html = '<div class="calendario-grid">';
+            const diasSemana = ['D','S','T','Q','Q','S','S'];
+            
+            diasSemana.forEach(d => html += `<div class="text-[8px] text-gray-400 font-bold text-center">${d}</div>`);
+
+            for (let i = 0; i < 28; i++) {
+                const dataFoco = new Date();
+                dataFoco.setDate(hoje.getDate() + i);
+                const dataString = dataFoco.toISOString().split('T')[0];
+                
+                // Verifica se o dia está ocupado na lista de aluguéis da peça
+                const ocupado = alugueis.some(a => dataString >= a.inicio && dataString <= a.fim);
+                
+                const classe = ocupado ? 'dia-ocupado' : 'dia-livre';
+                html += `<div class="dia ${classe}">${dataFoco.getDate()}</div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderizar(pecas) {
+            listaCatalogo.innerHTML = '';
+            pecas.forEach(p => {
+                listaCatalogo.innerHTML += `
+                    <div class="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 p-4">
+                        <img src="${p.foto}" class="w-full h-48 object-cover rounded-2xl mb-4 bg-slate-100">
+                        <div class="mb-4">
+                            <h3 class="font-black text-sm uppercase text-slate-800">${p.nome}</h3>
+                            <p class="text-[10px] text-slate-400 font-bold">REF: ${p.ref}</p>
+                        </div>
+                        
+                        <div class="bg-slate-50 rounded-2xl p-3 mb-4">
+                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-2 text-center">Disponibilidade (Próximos 30 dias)</p>
+                            ${gerarCalendarioHtml(p.alugueis || [])}
+                        </div>
+
+                        <a href="https://wa.me/5542999999999?text=Olá! Gostaria de alugar a peça ${p.nome} (Ref: ${p.ref})" 
+                           class="block w-full bg-green-500 text-white text-xs font-bold text-center py-3 rounded-xl hover:bg-green-600 transition-all uppercase">
+                            Reservar Agora
+                        </a>
+                    </div>
+                `;
+            });
+            listaCatalogo.classList.remove('hidden');
+            document.getElementById('areaUpload').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
