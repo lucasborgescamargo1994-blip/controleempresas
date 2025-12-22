@@ -74,30 +74,38 @@
         }
 
         // --- FUNÇÃO DE UM CLIQUE (SINCRONIZAÇÃO) ---
-        async function carregarCatalogoAutomatico() {
-            const btn = document.getElementById('btnSync');
-            btn.innerText = "⏳ CARREGANDO...";
-            btn.disabled = true;
+       async function carregarCatalogoAutomatico() {
+    const btn = document.getElementById('btnSync');
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ CONECTANDO AO SERVIDOR...";
+    btn.disabled = true;
 
-            // Substitua 'SEU_USUARIO' e 'SEU_REPOSITORIO' pelos seus dados do GitHub
-            const url = "https://raw.githubusercontent.com/lucasborgescamargo1994-blip/controleempresas/main/catalogo_online.json";
+    // Use o link RAW aqui
+    const url = "https://raw.githubusercontent.com/lucasborgescamargo1994-blip/controleempresas/main/catalogo_online.json";
 
-            try {
-                // Adicionamos um timestamp para evitar que o navegador use uma versão antiga (cache)
-                const resposta = await fetch(`${url}?t=${Date.now()}`);
-                if (!resposta.ok) throw new Error();
-                
-                const dados = await resposta.json();
-                processarDados(dados);
-                
-                // Esconde a área de upload após sucesso automático
-                document.getElementById('areaCarregamento').classList.add('hidden');
-            } catch (err) {
-                alert("Não conseguimos carregar automaticamente. Por favor, selecione o arquivo .json manualmente abaixo.");
-                btn.innerText = "🔄 TENTAR NOVAMENTE";
-                btn.disabled = false;
-            }
+    try {
+        console.log("Tentando buscar dados de:", url);
+        
+        // O modo 'cors' avisa ao navegador que está tudo bem buscar de outro domínio
+        const resposta = await fetch(url, { mode: 'cors' });
+        
+        if (!resposta.ok) {
+            throw new Error(`Erro HTTP: ${resposta.status}`);
         }
+        
+        const dados = await resposta.json();
+        console.log("Dados recebidos com sucesso:", dados);
+        
+        processarDados(dados);
+        document.getElementById('areaCarregamento').classList.add('hidden');
+        
+    } catch (err) {
+        console.error("FALHA NA SINCRONIZAÇÃO:", err);
+        alert("Erro ao carregar dados automaticamente. \n\nMotivo: " + err.message + "\n\nVerifique se o arquivo existe no seu GitHub.");
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
 
         // --- CARREGAMENTO VIA ARQUIVO MANUAL ---
         document.getElementById('inputArquivo').addEventListener('change', function(e) {
@@ -177,3 +185,4 @@
     </script>
 </body>
 </html>
+
