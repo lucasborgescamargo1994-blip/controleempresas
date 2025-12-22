@@ -113,7 +113,7 @@
                 <button onclick="tab('empresa')" id="btnTabEmpresa" class="tab-btn px-4 py-2 font-black uppercase text-[10px] border-b-2 border-orange-500 text-orange-600">Empresa</button>
                 <button onclick="tab('categorias')" id="btnTabCategorias" class="tab-btn px-4 py-2 font-black uppercase text-[10px] border-b-2 border-transparent text-slate-400">Categorias</button>
                 <button onclick="tab('clientes')" id="btnTabClientes" class="tab-btn px-4 py-2 font-black uppercase text-[10px] border-b-2 border-transparent text-slate-400">Clientes</button>
-                <button onclick="tab('banco')" id="btnTabBanco" class="tab-btn px-4 py-2 font-black uppercase text-[10px] border-b-2 border-transparent text-slate-400">Backup</button>
+                <button onclick="tab('banco')" id="btnTabBanco" class="tab-btn px-4 py-2 font-black uppercase text-[10px] border-b-2 border-transparent text-slate-400">Dados e Catálogo</button>
             </div>
 
             <div id="tab_empresa" class="aba-content space-y-4">
@@ -148,16 +148,160 @@
             </div>
 
             <div id="tab_banco" class="aba-content hidden space-y-4 text-center py-6">
-                <button onclick="exportarDados()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black italic">EXPORTAR BACKUP</button>
+				<button onclick="configurarSincronizacao()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black italic">	🔄 Vincular OneDrive (Computador)
+				<button onclick="gerarArquivoCatalogo()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black italic">📢 1. Gerar Arquivo do Catálogo</button>
+				</button> <a href="https://lucasborgescamargo1994-blip.github.io/controleempresas/catalogo.html" target="_blank" class="bg-indigo-600 text-white p-3 rounded-xl font-bold text-xs uppercase shadow-lg hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 mt-4"><span>🌐</span> Abrir Catálogo Cliente Online</a>
+				<button onclick="copiarLinkCatalogo()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black italic">Copiar link Catálogo para enviar no WhatsApp</button>
+                <button onclick="exportarDados()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-black italic">EXPORTAR BACKUP (Interno)</button>
                 <input type="file" id="importFile" class="hidden" onchange="importarDados(this)">
                 <button onclick="document.getElementById('importFile').click()" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-black italic">IMPORTAR BACKUP</button>
-                <button onclick="apagarTudo()" class="w-full bg-red-100 text-red-600 p-4 rounded-xl font-black mt-10">ZERAR SISTEMA</button>
+                <button onclick="apagarTudo()" class="w-full bg-red-100 text-red-600 p-4 rounded-xl font-black mt-10">ZERAR SISTEMA(Esta ação é irreversível, faça Backup antes)</button>
             </div>
             <button onclick="fecharModal()" class="w-full mt-8 bg-slate-900 text-white p-4 rounded-xl font-black uppercase italic">Sair do Painel</button>
         </div>
     </div>
 
     <script>
+	
+	function gerarArquivoCatalogo() {
+    const transacao = db.transaction("fantasias", "readonly");
+    const store = transacao.objectStore("fantasias");
+
+    store.getAll().onsuccess = (e) => {
+        const todasAsPecas = e.target.result;
+
+        // FILTRO LGPD: Criando uma lista nova apenas com o necessário para o catálogo
+        const dadosParaCatalogo = todasAsPecas.map(p => {
+            return {
+                nome: p.nome,
+                ref: p.ref,
+                categoria: p.categoria,
+                foto: p.foto,
+                // Aqui removemos nomes de clientes, CPFs e valores
+                // Enviamos apenas o período que a peça está ocupada
+                alugueis: (p.alugueis || []).map(aluguel => ({
+                    inicio: aluguel.inicio,
+                    fim: aluguel.fim
+                }))
+            };
+        });
+
+        // Gera o arquivo específico para o catálogo
+        const blob = new Blob([JSON.stringify(dadosParaCatalogo)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "catalogo_online.json"; // Nome diferente do backup
+        link.click();
+        
+        alert("Arquivo do catálogo gerado com sucesso! Este arquivo não contém dados de clientes.");
+    };
+}
+		let pastaHandle = null;
+
+// 1. Função para pedir permissão da pasta (OneDrive)
+async function configurarSincronizacao() {
+    try {
+        pastaHandle = await window.showDirectoryPicker();
+        
+        // Verifica se o navegador permite escrever na pasta
+        const options = { mode: 'readwrite' };
+        if ((await pastaHandle.queryPermission(options)) !== 'granted') {
+            await pastaHandle.requestPermission(options);
+        }
+        
+        await sincronizarComArquivo();
+        alert("Pasta vinculada com sucesso! O arquivo 'catalogo_online.json' foi criado.");
+    } catch (err) {
+        console.error("Erro ao vincular pasta:", err);
+        alert("Você precisa selecionar uma pasta e permitir o acesso.");
+    }
+}
+
+// 2. Função que gera o JSON e salva na pasta vinculada
+async function sincronizarComArquivo() {
+    if (!pastaHandle || !db) return;
+
+    const transaction = db.transaction("fantasias", "readonly");
+    const store = transaction.objectStore("fantasias");
+
+    store.getAll().onsuccess = async (event) => {
+        const pecas = event.target.result;
+
+        // Filtra apenas o necessário para o catálogo das clientes (segurança)
+        const dadosPublicos = pecas.map(p => ({
+            ref: p.ref,
+            nome: p.nome,
+            categoria: p.categoria,
+            foto: p.foto
+        }));
+
+        try {
+            const fileHandle = await pastaHandle.getFileHandle('catalogo_online.json', { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(JSON.stringify(dadosPublicos));
+            await writable.close();
+            console.log("OneDrive atualizado!");
+        } catch (e) {
+            console.warn("Não foi possível salvar no OneDrive. Vincule a pasta novamente.");
+        }
+    };
+}
+
+// 3. ATUALIZAÇÃO DA SUA FUNÇÃO DE SALVAR PEÇA
+// Procure o seu document.getElementById('formFantasia').onsubmit e substitua por este:
+document.getElementById('formFantasia').onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const refInformada = document.getElementById('refPeca').value.trim().toUpperCase();
+    const categoriaSelecionada = document.getElementById('catPeca').value;
+    
+    if (!categoriaSelecionada) {
+        alert("Por favor, selecione uma categoria!");
+        return;
+    }
+
+    // Verifica se referência já existe
+    const store = db.transaction("fantasias", "readonly").objectStore("fantasias");
+    store.getAll().onsuccess = async (ev) => {
+        const todas = ev.target.result;
+        if (todas.some(p => p.ref.toUpperCase() === refInformada)) {
+            alert("Uma peça já foi cadastrada com essa referência!");
+            return;
+        }
+
+        // Processa foto
+        const fInput = document.getElementById('fotoPeca'); 
+        let foto = '';
+        if (fInput.files[0]) {
+            foto = await new Promise(r => { 
+                const rd = new FileReader(); 
+                rd.onload = () => r(rd.result); 
+                rd.readAsDataURL(fInput.files[0]); 
+            });
+        }
+        
+        const n = { 
+            id: Date.now(), 
+            ref: refInformada, 
+            nome: document.getElementById('nomePeca').value, 
+            categoria: categoriaSelecionada, 
+            foto, 
+            alugueis: [] 
+        };
+        
+        const saveTx = db.transaction("fantasias", "readwrite");
+        saveTx.objectStore("fantasias").add(n).onsuccess = () => { 
+            e.target.reset(); 
+            updateSelects(); 
+            renderizarEstoque(); 
+            
+            // Tenta mandar para o OneDrive automaticamente após salvar
+            sincronizarComArquivo(); 
+            
+            alert("Peça cadastrada com sucesso!"); 
+        };
+    };
+};
         let db;
         let categorias = JSON.parse(localStorage.getItem('cats')) || ["GERAL"];
         let catsAbertas = JSON.parse(localStorage.getItem('catsAbertas')) || {}; 
@@ -544,6 +688,19 @@
         });
     };
 }
+		function copiarLinkCatalogo() {
+    const link = "https://lucasborgescamargo1994-blip.github.io/controleempresas/catalogo.html";
+    
+    // Cria um campo de texto invisível, coloca o link e copia
+    const aux = document.createElement("input");
+    aux.setAttribute("value", link);
+    document.body.appendChild(aux);
+    aux.select();
+    document.execCommand("copy");
+    document.body.removeChild(aux);
+    
+    alert("Link copiado!");
+}
 
         function abrirModalFiltroCatalogo() {
             const sel = document.getElementById('selectCatExport');
@@ -564,7 +721,8 @@
     select.innerHTML = `<option value="" disabled selected>Selecionar categoria/Crie uma nova no painel ADM</option>` + 
                       categorias.sort().map(c => `<option value="${c}">${c}</option>`).join(''); 
 }
-        function abrirModal() { document.getElementById('modalConfig').classList.remove('hidden'); tab('empresa'); }
+        
+		function abrirModal() { document.getElementById('modalConfig').classList.remove('hidden'); tab('empresa'); }
         function fecharModal() { document.getElementById('modalConfig').classList.add('hidden'); location.reload() }
         function preencherCamposConfig() { if(dadosLoja) { document.getElementById('regNome').value = dadosLoja.nome||''; document.getElementById('regDoc').value = dadosLoja.doc||''; document.getElementById('regTel').value = dadosLoja.tel||''; document.getElementById('regEnd').value = dadosLoja.end||''; document.getElementById('headerNomeLoja').innerText = dadosLoja.nome; } }
         function addCategoriaPainel() { const n = document.getElementById('novaCatInput').value.toUpperCase().trim(); if(n && !categorias.includes(n)) { categorias.push(n); localStorage.setItem('cats', JSON.stringify(categorias)); listarCategoriasPainel(); updateSelects(); } }
