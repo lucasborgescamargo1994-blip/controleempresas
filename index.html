@@ -164,46 +164,40 @@
     <script>
 	
 	function gerarArquivoCatalogo() {
-    const transacao = db.transaction(["fantasias", "alugueis"], "readonly");
+    const transacao = db.transaction(["fantasias"], "readonly");
     const storeFantasias = transacao.objectStore("fantasias");
-    const storeAlugueis = transacao.objectStore("alugueis");
 
-    const pedidoFantasias = storeFantasias.getAll();
-    const pedidoAlugueis = storeAlugueis.getAll();
+    storeFantasias.getAll().onsuccess = (e) => {
+        const todasAsPecas = e.target.result;
 
-    // Aguarda carregar tanto as fantasias quanto os aluguéis
-    Promise.all([
-        new Promise(resolve => pedidoFantasias.onsuccess = () => resolve(pedidoFantasias.result)),
-        new Promise(resolve => pedidoAlugueis.onsuccess = () => resolve(pedidoAlugueis.result))
-    ]).then(([fantasias, alugueis]) => {
-        
-        // FILTRO LGPD E VINCULAÇÃO DE DATAS
-        const dadosParaCatalogo = fantasias.map(p => {
-            // Filtra apenas os aluguéis que pertencem a ESTA peça (p.id)
-            const datasOcupadas = alugueis
-                .filter(a => String(a.fantasiaId) === String(p.id))
-                .map(a => ({
-                    inicio: a.dataInicio, // Verifique se o nome do campo no seu banco é esse
-                    fim: a.dataFim       // Verifique se o nome do campo no seu banco é esse
-                }));
-
+        // Mapeia os dados garantindo a compatibilidade com o Catálogo Online
+        const dadosParaCatalogo = todasAsPecas.map(p => {
             return {
                 nome: p.nome,
                 ref: p.ref,
                 categoria: p.categoria,
                 foto: p.foto,
-                alugueis: datasOcupadas // Agora o catálogo recebe as datas reais
+                // O segredo está aqui: mapear 'ret' para 'inicio' e 'dev' para 'fim'
+                alugueis: (p.alugueis || []).map(al => ({
+                    inicio: al.ret, 
+                    fim: al.dev
+                }))
             };
         });
 
+        // Gera e baixa o arquivo
         const blob = new Blob([JSON.stringify(dadosParaCatalogo)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
+        link.href = url;
         link.download = "catalogo_online.json";
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
         
-        alert("Catálogo atualizado com sucesso! As datas de aluguel foram incluídas.");
-    });
+        alert("Arquivo do catálogo gerado com sucesso!");
+    };
+
 }
 		let pastaHandle = null;
 
