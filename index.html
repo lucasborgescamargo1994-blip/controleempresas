@@ -174,67 +174,86 @@ const CONFIG_GIT = {
 };
 
 async function atualizarCatalogoNuvem() {
-    // --- CONFIGURAÇÃO ---
-    const USUARIO_GITHUB = 'lucasborgescamargo1994-blip'; // Coloque aqui seu nome de usuário do GitHub
-    const REPO_NOME = 'controleempresas';
-    const p1 = "ghp_n6mAvIlXNWz";
-    const p2 = "TrMBginRysU9MD";
-    const p3 = "VJoLR3WSSLW";
-	const TOKEN = p1 + p2 + p3; 
-    const ARQUIVO = 'catalogo_online.json';
-    // --------------------
-
     const btn = event.target;
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = "<span>⏳ Processando...</span>";
+    btn.innerHTML = "<span>⏳ Sincronizando...</span>";
 
     try {
-        // 1. Coletar dados do IndexedDB
+        // 1. Coleta os dados do banco IndexedDB
         const transacao = db.transaction("fantasias", "readonly");
         const store = transacao.objectStore("fantasias");
-        const dados = await new Promise((r, j) => {
-            const req = store.getAll();
-            req.onsuccess = () => r(req.result);
-            req.onerror = () => j("Erro ao ler banco local.");
+        
+        const pecasBrutas = await new Promise((resolve, reject) => {
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject("Erro ao ler banco local.");
         });
 
-        btn.innerHTML = "<span>☁️ Enviando ao GitHub...</span>";
+        // 2. FORMATAÇÃO CORRIGIDA: Traduzindo 'ret' para 'inicio' e 'dev' para 'fim'
+        const dadosFormatados = pecasBrutas.map(p => ({
+            nome: p.nome,
+            ref: p.ref,
+            categoria: p.categoria,
+            foto: p.foto,
+            alugueis: (p.alugueis || []).map(al => ({
+                inicio: al.ret, 
+                fim: al.dev
+            }))
+        }));
 
-        // 2. Preparar JSON e Base64 (UTF-8 safe)
-        const jsonString = JSON.stringify(dados, null, 2);
-        const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
+        const jsonString = JSON.stringify(dadosFormatados);
 
-        const url = `https://api.github.com/repos/${USUARIO_GITHUB}/${REPO_NOME}/contents/${ARQUIVO}`;
+        // 3. Conversão segura para não estourar a memória (Blob + FileReader)
+        const base64Content = await new Promise((resolve) => {
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.readAsDataURL(blob);
+        });
+
+        // Configurações do GitHub
+        const usuario = "lucasborgescamargo1994-blip";
+        const repo = "controleempresas";
+        const arquivo = "catalogo_online.json";
+		const p1 = "ghp_n6mAvIlXNW";
+		const p2 = "zTrMBginRysU9M";
+		const p3 = p1 + p2 + p3; 
+        const token = ""; // Nota: Lembre-se de não compartilhar este token publicamente
+
+        const url = `https://api.github.com/repos/${usuario}/${repo}/contents/${arquivo}`;
         const headers = {
-            'Authorization': `token ${TOKEN}`,
+            'Authorization': `token ${token}`,
             'Accept': 'application/vnd.github.v3+json'
         };
 
-        // 3. Tentar pegar o SHA do arquivo (se ele já existir)
+        // 4. Pega o SHA para atualização
         let sha = "";
-        const checkRes = await fetch(url, { headers });
-        if (checkRes.ok) {
-            const fileData = await checkRes.json();
-            sha = fileData.sha;
+        const resGet = await fetch(url, { headers });
+        if (resGet.ok) {
+            const data = await resGet.json();
+            sha = data.sha;
         }
 
-        // 4. Enviar para o GitHub (PUT cria ou atualiza)
-        const uploadRes = await fetch(url, {
+        // 5. Envia o arquivo formatado corretamente
+        const resPut = await fetch(url, {
             method: 'PUT',
             headers,
             body: JSON.stringify({
-                message: "Atualização de estoque: " + new Date().toLocaleString(),
+                message: "Sincronização Nuvem: " + new Date().toLocaleString('pt-BR'),
                 content: base64Content,
-                sha: sha 
+                sha: sha
             })
         });
 
-        if (uploadRes.ok) {
-            alert("✅ Catálogo Online atualizado com sucesso!");
+        if (resPut.ok) {
+            alert("✅ Sincronizado com sucesso! As datas devem aparecer agora.");
         } else {
-            const errorInfo = await uploadRes.json();
-            throw new Error(errorInfo.message);
+            const errorData = await resPut.json();
+            throw new Error(errorData.message);
         }
 
     } catch (error) {
