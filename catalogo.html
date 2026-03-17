@@ -52,137 +52,148 @@
 
     <script>
         let dadosOriginais = [];
-        const dataHoje = new Date();
-        const campoAno = document.getElementById('labelAno');
-        
-        // Configuração Inicial
-        document.addEventListener("DOMContentLoaded", () => {
-            campoAno.innerText = dataHoje.getFullYear();
-            popularMeses();
-        });
+const dataHoje = new Date();
+const anoAtual = dataHoje.getFullYear();
 
-        function popularMeses() {
-            const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            const select = document.getElementById('filtroMes');
-            meses.forEach((m, i) => {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.innerText = m;
-                if(i === dataHoje.getMonth()) opt.selected = true;
-                select.appendChild(opt);
-            });
-        }
+// Configuração Inicial
+document.addEventListener("DOMContentLoaded", () => {
+    const campoAno = document.getElementById('labelAno');
+    if (campoAno) campoAno.innerText = anoAtual;
+    popularMeses();
+});
 
-        // --- FUNÇÃO DE UM CLIQUE (SINCRONIZAÇÃO) ---
-       async function carregarCatalogoAutomatico() {
+function popularMeses() {
+    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const select = document.getElementById('filtroMes');
+    if (!select) return;
+    
+    select.innerHTML = '';
+    meses.forEach((m, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.innerText = m;
+        if (i === dataHoje.getMonth()) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+async function carregarCatalogoAutomatico() {
     const btn = document.getElementById('btnSync');
     const originalText = btn.innerText;
-    btn.innerText = "⏳ CONECTANDO AO SERVIDOR...";
+    btn.innerText = "⏳ CONECTANDO...";
     btn.disabled = true;
 
-    // Use o link RAW aqui
-    const url = "https://raw.githubusercontent.com/lucasborgescamargo1994-blip/controleempresas/main/catalogo_online.json";
+    // Substitua SEU_USUARIO pelo seu nome de usuário real do GitHub
+    const usuario = "lucasborgescamargo1994-blip"; 
+    const timestamp = new Date().getTime();
+    const url = `https://raw.githubusercontent.com/${usuario}/controleempresas/main/catalogo_online.json?t=${timestamp}`;
 
     try {
-        console.log("Tentando buscar dados de:", url);
+        const resposta = await fetch(url, { 
+            mode: 'cors',
+            cache: 'no-store' 
+        });
         
-        // O modo 'cors' avisa ao navegador que está tudo bem buscar de outro domínio
-        const resposta = await fetch(url, { mode: 'cors' });
-        
-        if (!resposta.ok) {
-            throw new Error(`Erro HTTP: ${resposta.status}`);
-        }
+        if (!resposta.ok) throw new Error(`Erro HTTP: ${resposta.status}`);
         
         const dados = await resposta.json();
-        console.log("Dados recebidos com sucesso:", dados);
-        
         processarDados(dados);
         document.getElementById('areaCarregamento').classList.add('hidden');
         
     } catch (err) {
-        console.error("FALHA NA SINCRONIZAÇÃO:", err);
-        alert("Erro ao carregar dados automaticamente. \n\nMotivo: " + err.message + "\n\nVerifique se o arquivo existe no seu GitHub.");
+        console.error("ERRO:", err);
+        alert("Erro ao sincronizar. Verifique se o arquivo existe no GitHub.");
         btn.innerText = originalText;
         btn.disabled = false;
     }
 }
 
-        // --- CARREGAMENTO VIA ARQUIVO MANUAL ---
-        document.getElementById('inputArquivo').addEventListener('change', function(e) {
-            const leitor = new FileReader();
-            leitor.onload = (event) => {
-                const dados = JSON.parse(event.target.result);
-                processarDados(dados);
-                document.getElementById('areaCarregamento').classList.add('hidden');
-            };
-            leitor.readAsText(e.target.files[0]);
+// Suporte para carregar arquivo localmente se precisar
+document.getElementById('inputArquivo').addEventListener('change', function(e) {
+    const leitor = new FileReader();
+    leitor.onload = (event) => {
+        const dados = JSON.parse(event.target.result);
+        processarDados(dados);
+        document.getElementById('areaCarregamento').classList.add('hidden');
+    };
+    leitor.readAsText(e.target.files[0]);
+});
+
+function processarDados(dados) {
+    dadosOriginais = dados;
+    document.getElementById('filtros').classList.remove('hidden');
+    
+    const categorias = [...new Set(dados.map(d => d.categoria))];
+    const selCat = document.getElementById('filtroCategoria');
+    selCat.innerHTML = `<option value="TODAS">TODAS AS CATEGORIAS</option>` + 
+                       categorias.map(c => `<option value="${c}">${c}</option>`).join('');
+    
+    aplicarFiltros();
+}
+
+function aplicarFiltros() {
+    const cat = document.getElementById('filtroCategoria').value;
+    const mes = document.getElementById('filtroMes').value;
+    renderizarEstoque(dadosOriginais.filter(d => cat === "TODAS" || d.categoria === cat), mes, anoAtual);
+}
+
+function renderizarEstoque(itens, mes, ano) {
+    const container = document.getElementById('listaItens');
+    container.innerHTML = '';
+
+    itens.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-[32px] shadow-md border p-4 flex flex-col";
+        card.innerHTML = `
+            <img src="${item.foto}" class="item-image mb-4 shadow-inner" onerror="this.src='https://placehold.co/400x300?text=Sem+Foto'">
+            <div class="text-center mb-4">
+                <span class="text-[10px] font-black text-orange-500 uppercase tracking-tighter">[${item.ref}]</span>
+                <h3 class="font-black text-sm uppercase italic">${item.nome}</h3>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-2xl border">
+                <div class="grid grid-cols-7 text-[8px] font-black text-slate-400 text-center mb-1">
+                    <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+                </div>
+                <div class="calendar-grid">
+                    ${gerarCalendarioHtml(item.alugueis, mes, ano)}
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function gerarCalendarioHtml(alugueis, mes, ano) {
+    const totalDias = new Date(ano, parseInt(mes) + 1, 0).getDate();
+    const primeiroDia = new Date(ano, mes, 1).getDay();
+    let html = '';
+
+    // 1. Espaços vazios para alinhar o dia da semana
+    for (let i = 0; i < primeiroDia; i++) html += `<div class="day day-empty"></div>`;
+
+    // 2. Garantir que 'alugueis' seja sempre um array para evitar o erro de 'undefined'
+    const listaAlugueis = alugueis || [];
+
+    for (let dia = 1; dia <= totalDias; dia++) {
+        // Formata o dia atual do calendário (Ex: 2026-03-17)
+        const dataCalendario = `${ano}-${String(parseInt(mes) + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+
+        // 3. Verificação segura de ocupação
+        const ocupado = listaAlugueis.some(al => {
+            // Se as datas de início ou fim estiverem faltando neste registro, ignora
+            if (!al.inicio || !al.fim) return false;
+
+            // Limpa as datas de possíveis espaços em branco
+            const inicio = al.inicio.trim();
+            const fim = al.fim.trim();
+
+            return dataCalendario >= inicio && dataCalendario <= fim;
         });
 
-        function processarDados(dados) {
-            dadosOriginais = dados;
-            document.getElementById('filtros').classList.remove('hidden');
-            
-            // Popular categorias
-            const categorias = [...new Set(dados.map(d => d.categoria))];
-            const selCat = document.getElementById('filtroCategoria');
-            selCat.innerHTML = `<option value="TODAS">TODAS AS CATEGORIAS</option>` + 
-                               categorias.map(c => `<option value="${c}">${c}</option>`).join('');
-            
-            aplicarFiltros();
-        }
-
-        function aplicarFiltros() {
-            const cat = document.getElementById('filtroCategoria').value;
-            const mes = document.getElementById('filtroMes').value;
-            const ano = dataHoje.getFullYear();
-
-            let filtrados = dadosOriginais;
-            if(cat !== "TODAS") filtrados = filtrados.filter(d => d.categoria === cat);
-
-            renderizarEstoque(filtrados, mes, ano);
-        }
-
-        function renderizarEstoque(itens, mes, ano) {
-            const container = document.getElementById('listaItens');
-            container.innerHTML = '';
-
-            itens.forEach(item => {
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-[32px] shadow-md border p-4 flex flex-col";
-                card.innerHTML = `
-                    <img src="${item.foto}" class="item-image mb-4 shadow-inner" onerror="this.src='https://placehold.co/400x300?text=Sem+Foto'">
-                    <div class="text-center mb-4">
-                        <span class="text-[10px] font-black text-orange-500 uppercase tracking-tighter">[${item.ref}]</span>
-                        <h3 class="font-black text-sm uppercase italic">${item.nome}</h3>
-                    </div>
-                    <div class="bg-slate-50 p-3 rounded-2xl border">
-                        <div class="grid grid-cols-7 text-[8px] font-black text-slate-400 text-center mb-1">
-                            <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
-                        </div>
-                        <div class="calendar-grid">
-                            ${gerarCalendarioHtml(item.alugueis, mes, ano)}
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function gerarCalendarioHtml(alugueis, mes, ano) {
-            const totalDias = new Date(ano, parseInt(mes) + 1, 0).getDate();
-            const primeiroDia = new Date(ano, mes, 1).getDay();
-            let html = '';
-
-            for (let i = 0; i < primeiroDia; i++) html += `<div class="day day-empty"></div>`;
-
-            for (let dia = 1; dia <= totalDias; dia++) {
-                const dataStr = `${ano}-${String(parseInt(mes)+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-                const ocupado = alugueis.some(al => dataStr >= al.inicio && dataStr <= al.fim);
-                html += `<div class="day ${ocupado ? 'day-rented' : 'day-free'}">${dia}</div>`;
-            }
-            return html;
-        }
+        html += `<div class="day ${ocupado ? 'day-rented' : 'day-free'}">${dia}</div>`;
+    }
+    return html;
+}
     </script>
 </body>
 </html>
-
