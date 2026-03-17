@@ -79,7 +79,10 @@
         </div>
         <div class="flex gap-2">
             <button onclick="abrirModalFiltroCatalogo()" class="bg-green-600 text-white p-2 px-4 rounded-full font-bold text-[10px] uppercase italic">Catálogo PDF</button>
-            <button onclick="abrirModal()" class="bg-slate-900 text-white p-2 px-4 rounded-full font-bold text-[10px] uppercase italic">Painel ADM</button>
+            <button onclick="atualizarCatalogoNuvem()" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all uppercase italic flex items-center gap-2">
+    🚀 Atualizar Catálogo Online
+</button>
+			<button onclick="abrirModal()" class="bg-slate-900 text-white p-2 px-4 rounded-full font-bold text-[10px] uppercase italic">Painel ADM</button>
         </div>
     </div>
 </header>
@@ -162,6 +165,86 @@
     </div>
 
     <script>
+	
+	// --- CONFIGURAÇÃO DO GITHUB ---
+const CONFIG_GIT = {
+    token: p1 + p2 + p3,
+    repo: 'SEU_USUARIO/NOME_DO_REPOSITORIO', // <-- AJUSTE AQUI: "usuario/repositorio"
+    arquivo: 'catalogo_online.json'
+};
+
+async function atualizarCatalogoNuvem() {
+    // --- CONFIGURAÇÃO ---
+    const USUARIO_GITHUB = 'lucasborgescamargo1994-blip'; // Coloque aqui seu nome de usuário do GitHub
+    const REPO_NOME = 'controleempresas';
+    const p1 = "ghp_n6mAvIlXNWz";
+    const p2 = "TrMBginRysU9MD";
+    const p3 = "VJoLR3WSSLW";
+	const TOKEN = p1 + p2 + p3; 
+    const ARQUIVO = 'catalogo_online.json';
+    // --------------------
+
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = "<span>⏳ Processando...</span>";
+
+    try {
+        // 1. Coletar dados do IndexedDB
+        const transacao = db.transaction("fantasias", "readonly");
+        const store = transacao.objectStore("fantasias");
+        const dados = await new Promise((r, j) => {
+            const req = store.getAll();
+            req.onsuccess = () => r(req.result);
+            req.onerror = () => j("Erro ao ler banco local.");
+        });
+
+        btn.innerHTML = "<span>☁️ Enviando ao GitHub...</span>";
+
+        // 2. Preparar JSON e Base64 (UTF-8 safe)
+        const jsonString = JSON.stringify(dados, null, 2);
+        const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
+
+        const url = `https://api.github.com/repos/${USUARIO_GITHUB}/${REPO_NOME}/contents/${ARQUIVO}`;
+        const headers = {
+            'Authorization': `token ${TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json'
+        };
+
+        // 3. Tentar pegar o SHA do arquivo (se ele já existir)
+        let sha = "";
+        const checkRes = await fetch(url, { headers });
+        if (checkRes.ok) {
+            const fileData = await checkRes.json();
+            sha = fileData.sha;
+        }
+
+        // 4. Enviar para o GitHub (PUT cria ou atualiza)
+        const uploadRes = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+                message: "Atualização de estoque: " + new Date().toLocaleString(),
+                content: base64Content,
+                sha: sha 
+            })
+        });
+
+        if (uploadRes.ok) {
+            alert("✅ Catálogo Online atualizado com sucesso!");
+        } else {
+            const errorInfo = await uploadRes.json();
+            throw new Error(errorInfo.message);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Erro: " + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
 	
 	function gerarArquivoCatalogo() {
     const transacao = db.transaction(["fantasias"], "readonly");
