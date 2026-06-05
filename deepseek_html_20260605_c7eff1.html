@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>ContábilChat - Sistema Contábil Profissional</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --success: #10b981;
+            --success-dark: #059669;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', sans-serif;
+            background: var(--gray-100);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Tela de Seleção de Perfil */
+        .profile-selection {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .profile-selection.hidden {
+            display: none;
+        }
+
+        .profile-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .profile-card h2 {
+            font-size: 24px;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+        }
+
+        .profile-card p {
+            color: var(--gray-500);
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+
+        .profile-options {
+            display: flex;
+            gap: 16px;
+            flex-direction: column;
+        }
+
+        .profile-option {
+            padding: 20px;
+            border: 2px solid var(--gray-200);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            text-align: left;
+        }
+
+        .profile-option:hover {
+            border-color: var(--primary);
+            background: var(--gray-50);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .profile-option.selected {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .profile-icon {
+            font-size: 40px;
+            width: 60px;
+            height: 60px;
+            background: var(--gray-100);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-info h3 {
+            font-size: 18px;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .profile-info span {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .btn-confirm {
+            margin-top: 24px;
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-confirm:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-confirm:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Container Principal */
+        .app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--gray-50);
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo h1 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .logo p {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 1px;
+        }
+
+        /* Perfil Badge */
+        .profile-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .profile-badge .badge-icon {
+            font-size: 16px;
+        }
+
+        /* Conexão */
+        .connection-area {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .connection-input {
+            display: flex;
+            gap: 6px;
+            background: var(--gray-50);
+            padding: 3px 6px;
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .connection-input input {
+            padding: 8px 10px;
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            width: 160px;
+            outline: none;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: var(--gray-100);
+            white-space: nowrap;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gray-400);
+            flex-shrink: 0;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Layout Principal */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 16px;
+            gap: 16px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+
+        .sidebar-header h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 10px;
+        }
+
+        .my-session {
+            background: var(--primary);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .my-session:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .my-session:active {
+            background: #2d47d9;
+        }
+
+        .participants-list {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+        }
+
+        .participants-list h3 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: var(--gray-600);
+        }
+
+        .participant {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: var(--gray-50);
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+
+        .participant-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-200);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .participant-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .participant-name {
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--gray-700);
+        }
+
+        .participant-status {
+            font-size: 10px;
+            color: var(--gray-500);
+        }
+
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            min-width: 0;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            padding: 12px 16px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .toolbar-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* Botões */
+        .btn {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: var(--success-dark);
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        /* Mensagens */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--gray-50);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            animation: fadeIn 0.3s ease;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.sent {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received {
+            background: white;
+            color: var(--gray-700);
+            align-self: flex-start;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-ia {
+            background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+            color: #6b21a5;
+            border: 1px solid #d8b4fe;
+        }
+
+        .message-sender {
+            font-size: 10px;
+            font-weight: 600;
+            margin-bottom: 3px;
+            opacity: 0.7;
+        }
+
+        .message-time {
+            font-size: 9px;
+            margin-top: 4px;
+            opacity: 0.5;
+        }
+
+        /* Arquivos */
+        .files-section {
+            border-top: 1px solid var(--gray-200);
+            background: white;
+            display: flex;
+            flex-direction: column;
+            max-height: 30%;
+            min-height: 120px;
+        }
+
+        .files-header {
+            padding: 10px 16px;
+            background: var(--gray-50);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 12px;
+        }
+
+        .files-list {
+            padding: 10px;
+            overflow-y: auto;
+            flex: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            margin: 4px 0;
+            background: var(--gray-50);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .file-item:hover {
+            background: var(--gray-100);
+        }
+
+        .file-item.selected {
+            background: #e0e7ff;
+            border-color: var(--primary);
+        }
+
+        .file-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 12px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-size {
+            font-size: 10px;
+            color: var(--gray-500);
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .upload-area {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .file-label {
+            background: var(--gray-200);
+            padding: 7px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .file-label:hover {
+            background: var(--gray-300);
+        }
+
+        .message-input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .message-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .ai-button {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            padding: 8px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 10px;
+            color: white;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .ai-button:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Toast de cópia */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gray-800);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gray-300);
+            border-radius: 3px;
+        }
+
+        /* RESPONSIVO - Mobile Otimizado */
+        @media (max-width: 768px) {
+            body {
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+
+            .app {
+                height: 100vh;
+                height: 100dvh;
+            }
+
+            .header {
+                padding: 10px 12px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .logo h1 {
+                font-size: 14px;
+            }
+
+            .logo p {
+                font-size: 10px;
+            }
+
+            .logo-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 18px;
+            }
+
+            .profile-badge {
+                font-size: 11px;
+                padding: 4px 10px;
+            }
+
+            .connection-area {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .connection-input {
+                flex: 1;
+            }
+
+            .connection-input input {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .connection-input .btn {
+                flex-shrink: 0;
+            }
+
+            .main-layout {
+                padding: 8px;
+                gap: 8px;
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+                min-height: 150px;
+                flex-shrink: 1;
+            }
+
+            .sidebar-header {
+                padding: 12px;
+            }
+
+            .sidebar-header h3 {
+                font-size: 11px;
+                margin-bottom: 6px;
+            }
+
+            .my-session {
+                font-size: 10px;
+                padding: 8px;
+            }
+
+            .participants-list {
+                padding: 8px;
+            }
+
+            .participants-list h3 {
+                font-size: 11px;
+                margin-bottom: 6px;
+            }
+
+            .participant {
+                padding: 8px;
+                gap: 8px;
+            }
+
+            .participant-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+
+            .participant-name {
+                font-size: 12px;
+            }
+
+            .participant-status {
+                font-size: 10px;
+            }
+
+            .chat-area {
+                flex: 1;
+                min-height: 0;
+            }
+
+            .toolbar {
+                padding: 8px 12px;
+                font-size: 11px;
+                gap: 6px;
+            }
+
+            .btn {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .messages-container {
+                padding: 12px;
+                gap: 8px;
+            }
+
+            .message {
+                max-width: 85%;
+                padding: 8px 12px;
+                font-size: 13px;
+                border-radius: 12px;
+            }
+
+            .files-section {
+                max-height: 25%;
+                min-height: 100px;
+            }
+
+            .files-header {
+                padding: 8px 12px;
+                font-size: 11px;
+            }
+
+            .files-list {
+                padding: 8px;
+                max-height: 120px;
+            }
+
+            .file-item {
+                padding: 6px 8px;
+            }
+
+            .file-name {
+                font-size: 11px;
+            }
+
+            .input-area {
+                padding: 10px 12px;
+            }
+
+            .upload-area {
+                gap: 6px;
+                margin-bottom: 8px;
+            }
+
+            .file-label {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .message-input {
+                font-size: 13px;
+                padding: 8px;
+            }
+
+            .ai-button {
+                font-size: 11px;
+                padding: 7px;
+                margin-top: 8px;
+            }
+
+            .profile-card {
+                padding: 24px 20px;
+            }
+
+            .profile-card h2 {
+                font-size: 20px;
+            }
+
+            .profile-option {
+                padding: 16px;
+            }
+
+            .profile-icon {
+                font-size: 32px;
+                width: 48px;
+                height: 48px;
+            }
+
+            .profile-info h3 {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 8px 10px;
+            }
+
+            .logo h1 {
+                font-size: 13px;
+            }
+
+            .logo p {
+                font-size: 9px;
+            }
+
+            .connection-input input {
+                font-size: 12px;
+                padding: 6px 8px;
+            }
+
+            .connection-status {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+
+            .message {
+                max-width: 90%;
+                font-size: 12px;
+            }
+
+            .sidebar {
+                max-height: 160px;
+                min-height: 130px;
+            }
+
+            .files-section {
+                max-height: 22%;
+                min-height: 80px;
+            }
+
+            .files-list {
+                max-height: 100px;
+            }
+
+            .btn {
+                padding: 5px 8px;
+                font-size: 10px;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .message {
+                max-width: 75%;
+            }
+
+            .sidebar {
+                width: 250px;
+            }
+        }
+
+        /* Suporte para telas grandes */
+        @media (min-width: 1400px) {
+            .message {
+                max-width: 60%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela de Seleção de Perfil -->
+    <div class="profile-selection" id="profileSelection">
+        <div class="profile-card">
+            <h2>👋 Bem-vindo ao ContábilChat</h2>
+            <p>Selecione seu perfil para continuar</p>
+            <div class="profile-options">
+                <div class="profile-option" onclick="selectProfile('contador')" id="optionContador">
+                    <div class="profile-icon">📊</div>
+                    <div class="profile-info">
+                        <h3>Contador</h3>
+                        <span>Profissional contábil</span>
+                    </div>
+                </div>
+                <div class="profile-option" onclick="selectProfile('cliente')" id="optionCliente">
+                    <div class="profile-icon">🏢</div>
+                    <div class="profile-info">
+                        <h3>Cliente</h3>
+                        <span>Empresa ou pessoa física</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-confirm" id="btnConfirmProfile" disabled onclick="confirmProfile()">
+                Confirmar Perfil
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <div class="app">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">📊</div>
+                <div>
+                    <h1>ContábilChat</h1>
+                    <p>Troca de documentos contábeis</p>
+                </div>
+            </div>
+            <div class="profile-badge" id="profileBadge" style="display:none;">
+                <span class="badge-icon">👤</span>
+                <span id="profileLabel"></span>
+            </div>
+            <div class="connection-area">
+                <div class="connection-input">
+                    <input type="text" id="connectSessionId" placeholder="ID da sessão">
+                    <button class="btn btn-primary" onclick="connectToSession()">🔗 Conectar</button>
+                </div>
+                <div class="connection-status">
+                    <div class="status-dot" id="connectionDot"></div>
+                    <span id="connectionText">Desconectado</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h3>📋 MINHA SESSÃO</h3>
+                    <div class="my-session" id="mySessionBox" onclick="copyMySessionId()">
+                        <span id="mySessionId">Carregando...</span>
+                        <span style="font-size: 9px; opacity: 0.8; display: block;">📋 Clique para copiar</span>
+                    </div>
+                </div>
+                <div class="participants-list">
+                    <h3>👥 PARTICIPANTES</h3>
+                    <div id="participantsList">
+                        <div class="participant" id="localParticipant">
+                            <div class="participant-avatar">👤</div>
+                            <div class="participant-info">
+                                <div class="participant-name" id="localName">Você</div>
+                                <div class="participant-status">Conectado</div>
+                            </div>
+                        </div>
+                        <div class="participant" id="remoteParticipant" style="opacity: 0.6;">
+                            <div class="participant-avatar">🏢</div>
+                            <div class="participant-info">
+                                <div class="participant-name" id="remoteName">Cliente</div>
+                                <div class="participant-status" id="remoteStatus">Aguardando conexão</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="chat-area">
+                <div class="toolbar">
+                    <div style="font-weight: 500;">💬 Chat</div>
+                    <div class="toolbar-buttons">
+                        <button class="btn btn-secondary" onclick="selectAllFiles()">✅ Todos</button>
+                        <button class="btn btn-success" onclick="downloadSelectedAsZip()">📦 Baixar ZIP</button>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="messagesContainer">
+                    <div class="message received">
+                        <div class="message-sender">🤖 Sistema</div>
+                        <div>Selecione seu perfil para começar!</div>
+                        <div class="message-time">Agora</div>
+                    </div>
+                </div>
+
+                <div class="files-section">
+                    <div class="files-header">
+                        <strong>📁 Documentos</strong>
+                        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="clearFileSelection()">Limpar</button>
+                    </div>
+                    <div class="files-list" id="filesList">
+                        <div style="text-align: center; color: var(--gray-400); padding: 20px;">Nenhum arquivo</div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="upload-area">
+                        <label class="file-label">
+                            📎 Arquivos
+                            <input type="file" id="fileInput" multiple style="display: none;" onchange="handleFileSelect(this)">
+                        </label>
+                        <button class="btn btn-primary" onclick="uploadFiles()">📤 Enviar</button>
+                        <span id="selectedFilesInfo" style="font-size: 11px; color: var(--gray-500);"></span>
+                    </div>
+
+                    <div class="message-input-area">
+                        <textarea class="message-input" id="messageInput" placeholder="Digite sua mensagem..." rows="1"></textarea>
+                        <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+                    </div>
+
+                    <div class="ai-button" onclick="askAI()">
+                        🤖 Assistente IA - Dúvidas contábeis
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        // Estado
+        let mySessionId = 'sala_' + Math.random().toString(36).substr(2, 8);
+        let connectedSessionId = null;
+        let isConnected = false;
+        let files = [];
+        let selectedFiles = new Set();
+        let messages = [];
+        let myUserId = 'user_' + Math.random().toString(36).substr(2, 6);
+        let storageKey = null;
+        let userProfile = null; // 'contador' ou 'cliente'
+        
+        // Elementos
+        document.getElementById('mySessionId').innerHTML = mySessionId;
+        
+        // Toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+        
+        // Seleção de Perfil
+        function selectProfile(profile) {
+            userProfile = profile;
+            
+            // Atualizar visual
+            document.getElementById('optionContador').classList.remove('selected');
+            document.getElementById('optionCliente').classList.remove('selected');
+            document.getElementById('option' + profile.charAt(0).toUpperCase() + profile.slice(1)).classList.add('selected');
+            
+            // Habilitar botão
+            document.getElementById('btnConfirmProfile').disabled = false;
+        }
+        
+        function confirmProfile() {
+            if (!userProfile) {
+                showToast('Selecione um perfil primeiro!');
+                return;
+            }
+            
+            // Esconder tela de seleção
+            document.getElementById('profileSelection').classList.add('hidden');
+            
+            // Atualizar interface
+            const profileBadge = document.getElementById('profileBadge');
+            const profileLabel = document.getElementById('profileLabel');
+            const localName = document.getElementById('localName');
+            const remoteName = document.getElementById('remoteName');
+            const localParticipant = document.getElementById('localParticipant');
+            
+            profileBadge.style.display = 'flex';
+            
+            if (userProfile === 'contador') {
+                profileLabel.textContent = 'Contador';
+                profileBadge.querySelector('.badge-icon').textContent = '📊';
+                localName.textContent = 'Você (Contador)';
+                remoteName.textContent = 'Cliente';
+                localParticipant.querySelector('.participant-avatar').textContent = '📊';
+                document.getElementById('remoteParticipant').querySelector('.participant-avatar').textContent = '🏢';
+            } else {
+                profileLabel.textContent = 'Cliente';
+                profileBadge.querySelector('.badge-icon').textContent = '🏢';
+                localName.textContent = 'Você (Cliente)';
+                remoteName.textContent = 'Contador';
+                localParticipant.querySelector('.participant-avatar').textContent = '🏢';
+                document.getElementById('remoteParticipant').querySelector('.participant-avatar').textContent = '📊';
+            }
+            
+            addSystemMessage(`✅ Perfil selecionado: ${userProfile === 'contador' ? 'Contador' : 'Cliente'}`);
+            addSystemMessage('💡 Compartilhe seu ID de sessão ou conecte-se a uma sessão existente.');
+        }
+        
+        // Configurar armazenamento
+        function setStorageKey(sessionId) {
+            storageKey = 'contabil_' + sessionId;
+            loadData();
+        }
+        
+        // Carregar dados da sessão
+        function loadData() {
+            if (!storageKey) return;
+            
+            const savedMessages = localStorage.getItem(storageKey + '_messages');
+            if (savedMessages) {
+                messages = JSON.parse(savedMessages);
+                document.getElementById('messagesContainer').innerHTML = '';
+                messages.forEach(msg => displayMessage(msg, msg.userId === myUserId));
+            }
+            
+            const savedFiles = localStorage.getItem(storageKey + '_files');
+            if (savedFiles) {
+                files = JSON.parse(savedFiles);
+                updateFileList();
+            }
+        }
+        
+        function saveMessages() {
+            if (storageKey) {
+                localStorage.setItem(storageKey + '_messages', JSON.stringify(messages));
+            }
+        }
+        
+        function saveFiles() {
+            if (storageKey) {
+                localStorage.setItem(storageKey + '_files', JSON.stringify(files));
+            }
+        }
+        
+        // Conectar a uma sessão
+        function connectToSession() {
+            const sessionId = document.getElementById('connectSessionId').value.trim();
+            if (!sessionId) {
+                showToast('Digite o ID da sessão!');
+                return;
+            }
+            
+            connectedSessionId = sessionId;
+            setStorageKey(sessionId);
+            isConnected = true;
+            
+            // Atualizar UI
+            document.getElementById('connectionDot').classList.add('connected');
+            document.getElementById('connectionText').innerHTML = 'Conectado: ' + sessionId.substring(0, 8) + '...';
+            document.getElementById('remoteStatus').innerHTML = 'Conectado';
+            document.getElementById('remoteParticipant').style.opacity = '1';
+            
+            addSystemMessage(`✅ Conectado à sessão: ${sessionId}`);
+            
+            // Anunciar presença
+            broadcastMessage({
+                type: 'presence',
+                userId: myUserId,
+                profile: userProfile,
+                action: 'join',
+                timestamp: Date.now()
+            });
+            
+            // Iniciar listener de mensagens
+            startMessageListener();
+        }
+        
+        // Broadcast de mensagens
+        function broadcastMessage(data) {
+            if (!connectedSessionId) return;
+            
+            data.sender = myUserId;
+            data.sessionId = connectedSessionId;
+            data.timestamp = Date.now();
+            
+            const key = 'contabil_broadcast_' + connectedSessionId;
+            localStorage.setItem(key, JSON.stringify(data));
+            
+            // Limpar após 1 segundo
+            setTimeout(() => {
+                if (localStorage.getItem(key) === JSON.stringify(data)) {
+                    localStorage.removeItem(key);
+                }
+            }, 1000);
+        }
+        
+        // Listener de mensagens
+        function startMessageListener() {
+            if (window.messageListenerInterval) {
+                clearInterval(window.messageListenerInterval);
+            }
+            
+            window.messageListenerInterval = setInterval(() => {
+                if (!connectedSessionId) return;
+                
+                const key = 'contabil_broadcast_' + connectedSessionId;
+                const dataStr = localStorage.getItem(key);
+                
+                if (dataStr) {
+                    try {
+                        const data = JSON.parse(dataStr);
+                        if (data.sender !== myUserId) {
+                            handleIncomingMessage(data);
+                        }
+                        localStorage.removeItem(key);
+                    } catch(e) {}
+                }
+            }, 200);
+        }
+        
+        function handleIncomingMessage(data) {
+            if (data.type === 'message') {
+                const senderName = data.senderProfile === 'contador' ? 'Contador' : 'Cliente';
+                receiveMessage({
+                    ...data.message,
+                    sender: senderName
+                });
+            } else if (data.type === 'files') {
+                receiveFiles(data.files);
+            } else if (data.type === 'presence') {
+                if (data.action === 'join') {
+                    const profileName = data.profile === 'contador' ? 'Contador' : 'Cliente';
+                    addSystemMessage(`👋 ${profileName} entrou na sessão`);
+                    document.getElementById('remoteStatus').innerHTML = 'Conectado';
+                    document.getElementById('remoteParticipant').style.opacity = '1';
+                }
+            }
+        }
+        
+        // Mensagens
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            if (!isConnected) {
+                showToast('Conecte-se a uma sessão primeiro!');
+                return;
+            }
+            
+            const senderName = userProfile === 'contador' ? 'Você (Contador)' : 'Você (Cliente)';
+            
+            const message = {
+                id: Date.now(),
+                text: text,
+                sender: senderName,
+                userId: myUserId,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            messages.push(message);
+            saveMessages();
+            displayMessage(message, true);
+            
+            const broadcastName = userProfile === 'contador' ? 'Contador' : 'Cliente';
+            
+            broadcastMessage({
+                type: 'message',
+                senderProfile: userProfile,
+                message: {
+                    id: Date.now(),
+                    text: text,
+                    sender: broadcastName,
+                    userId: myUserId,
+                    timestamp: new Date().toLocaleTimeString()
+                }
+            });
+            
+            input.value = '';
+            input.style.height = 'auto';
+            
+            if (text.toLowerCase().includes('ajuda') || text.toLowerCase().includes('ia')) {
+                setTimeout(() => askAISpecific(text), 500);
+            }
+        }
+        
+        function receiveMessage(message) {
+            messages.push(message);
+            saveMessages();
+            displayMessage(message, false);
+        }
+        
+        function displayMessage(message, isSent) {
+            const container = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            const isIA = message.sender === 'IA Contábil';
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'} ${isIA ? 'message-ia' : ''}`;
+            messageDiv.innerHTML = `
+                <div class="message-sender">${message.sender}</div>
+                <div>${escapeHtml(message.text)}</div>
+                <div class="message-time">${message.timestamp}</div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function addSystemMessage(text) {
+            const container = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message received';
+            messageDiv.innerHTML = `
+                <div class="message-sender">🤖 Sistema</div>
+                <div>${text}</div>
+                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Arquivos
+        let tempFiles = [];
+        
+        function handleFileSelect(input) {
+            tempFiles = Array.from(input.files);
+            document.getElementById('selectedFilesInfo').innerHTML = `${tempFiles.length} arquivo(s)`;
+        }
+        
+        function uploadFiles() {
+            if (!isConnected) {
+                showToast('Conecte-se a uma sessão primeiro!');
+                return;
+            }
+            
+            if (!tempFiles.length) {
+                showToast('Selecione arquivos primeiro!');
+                return;
+            }
+            
+            const newFiles = tempFiles.map(file => ({
+                id: Date.now() + '_' + Math.random(),
+                name: file.name,
+                size: formatFileSize(file.size),
+                data: null
+            }));
+            
+            const readers = tempFiles.map((file, index) => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        newFiles[index].data = e.target.result;
+                        resolve();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+            
+            Promise.all(readers).then(() => {
+                files.push(...newFiles);
+                saveFiles();
+                updateFileList();
+                
+                broadcastMessage({
+                    type: 'files',
+                    files: newFiles.map(f => ({ id: f.id, name: f.name, size: f.size, data: f.data }))
+                });
+                
+                addSystemMessage(`📤 ${newFiles.length} arquivo(s) enviado(s)`);
+                tempFiles = [];
+                document.getElementById('selectedFilesInfo').innerHTML = '';
+                document.getElementById('fileInput').value = '';
+            });
+        }
+        
+        function receiveFiles(receivedFiles) {
+            receivedFiles.forEach(file => {
+                if (!files.find(f => f.id === file.id)) {
+                    files.push(file);
+                }
+            });
+            saveFiles();
+            updateFileList();
+            addSystemMessage(`📥 Recebido(s) ${receivedFiles.length} arquivo(s)`);
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        function updateFileList() {
+            const container = document.getElementById('filesList');
+            if (files.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--gray-400); padding: 20px;">📭 Nenhum arquivo</div>';
+                return;
+            }
+            
+            container.innerHTML = files.map(file => `
+                <div class="file-item" onclick="toggleFileSelection('${file.id}')" id="file_${file.id}">
+                    <div class="file-info">
+                        <div class="file-name">📄 ${escapeHtml(file.name)}</div>
+                        <div class="file-size">${file.size}</div>
+                    </div>
+                    <div>${selectedFiles.has(file.id) ? '✓' : ''}</div>
+                </div>
+            `).join('');
+        }
+        
+        function toggleFileSelection(fileId) {
+            if (selectedFiles.has(fileId)) {
+                selectedFiles.delete(fileId);
+                document.getElementById(`file_${fileId}`)?.classList.remove('selected');
+            } else {
+                selectedFiles.add(fileId);
+                document.getElementById(`file_${fileId}`)?.classList.add('selected');
+            }
+        }
+        
+        function selectAllFiles() {
+            files.forEach(file => {
+                selectedFiles.add(file.id);
+                document.getElementById(`file_${file.id}`)?.classList.add('selected');
+            });
+            addSystemMessage(`✅ ${selectedFiles.size} arquivo(s) selecionado(s)`);
+        }
+        
+        function clearFileSelection() {
+            selectedFiles.clear();
+            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+            addSystemMessage('❌ Seleção limpa');
+        }
+        
+        function downloadSelectedAsZip() {
+            if (selectedFiles.size === 0) {
+                showToast('Selecione pelo menos um arquivo!');
+                return;
+            }
+            
+            const selected = files.filter(f => selectedFiles.has(f.id));
+            const zip = new JSZip();
+            
+            selected.forEach(file => {
+                if (file.data) {
+                    const base64 = file.data.split(',')[1];
+                    zip.file(file.name, base64, { base64: true });
+                }
+            });
+            
+            zip.generateAsync({ type: 'blob' }).then(content => {
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(content);
+                link.href = url;
+                link.download = `documentos_${connectedSessionId || 'contabil'}_${Date.now()}.zip`;
+                link.click();
+                URL.revokeObjectURL(url);
+                addSystemMessage(`📦 ZIP criado com ${selected.length} arquivo(s)`);
+            });
+        }
+        
+        // IA
+        function askAI() {
+            const question = prompt('💡 Pergunte ao Assistente IA Contábil:', '');
+            if (question) askAISpecific(question);
+        }
+        
+        function askAISpecific(question) {
+            const responses = {
+                'imposto': '📊 Principais impostos: IRPJ (15% + adicional 10% sobre lucro > R$60k), CSLL (9%), PIS (0,65%), COFINS (3%), ICMS (depende do estado, média 18%), ISS (2-5% dependendo do município)',
+                'nfe': '📄 NF-e: Documento fiscal eletrônico. Campos obrigatórios: emitente, destinatário, produtos/serviços, valores, impostos, forma de pagamento. Prazo de autorização: 24h. Versão atual: 4.00',
+                'sped': '📑 SPED: ECD (Escrituração Contábil Digital - anual até maio), EFD (ICMS/IPI - mensal), EFD-Reinf (retenções - mensal), E-social (obrigações trabalhistas)',
+                'prazo': '⏰ Prazos fiscais: DAS (dia 20), GFIP (dia 7 do mês seguinte), ICMS (dia 15), IRRF (dia 20), Simples Nacional (dia 20), ECD/EFD (último dia útil de maio)',
+                'simples': '🏢 Simples Nacional: Alíquotas de 4% a 33%, Anexos I a V. Limite anual: R$ 4,8 milhões. Documentos: DAS, PGDAS-D, DEFIS',
+                'default': '🤖 Assistente Contábil especializado. Posso ajudar com: 📊 Impostos, 📄 NF-e, 📑 SPED, ⏰ Prazos fiscais, 🏢 Simples Nacional, 💰 Folha de pagamento, 📈 Balanço patrimonial, 🔍 Planejamento tributário, 💼 Obrigações acessórias'
+            };
+            
+            let response = responses.default;
+            for (let [key, value] of Object.entries(responses)) {
+                if (question.toLowerCase().includes(key)) {
+                    response = value;
+                    break;
+                }
+            }
+            
+            const iaMessage = {
+                id: Date.now(),
+                text: `🤖 ${response}\n\n📌 Pergunta: "${question}"`,
+                sender: 'IA Contábil',
+                userId: 'ia',
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            messages.push(iaMessage);
+            saveMessages();
+            displayMessage(iaMessage, false);
+        }
+        
+        // Copiar ID da sessão - CORRIGIDO
+        function copyMySessionId() {
+            const sessionId = mySessionId;
+            
+            // Método moderno com fallback
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(sessionId).then(() => {
+                    showToast('✅ ID da sessão copiado! Compartilhe com seu cliente/contador.');
+                }).catch(() => {
+                    fallbackCopy(sessionId);
+                });
+            } else {
+                fallbackCopy(sessionId);
+            }
+        }
+        
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('✅ ID da sessão copiado! Compartilhe com seu cliente/contador.');
+            } catch (err) {
+                showToast('❌ Não foi possível copiar. ID: ' + text);
+            }
+            
+            document.body.removeChild(textarea);
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Auto-resize textarea
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+        
+        // Enviar mensagem com Enter
+        document.getElementById('messageInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
